@@ -7,6 +7,7 @@ using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Microsoft.SemanticKernel.Connectors.Redis;
 using Microsoft.SemanticKernel.Connectors.Sqlite;
 using Microsoft.SemanticKernel.Memory;
+using SharpToken;
 using StackExchange.Redis;
 #pragma warning disable SKEXP0003
 #pragma warning disable SKEXP0011
@@ -20,10 +21,12 @@ namespace BlazorGPT.Pipeline;
 public class KernelService
 {
     private readonly PipelineOptions _options;
+    private GptEncoding tokenizer;
 
     public KernelService(IOptions<PipelineOptions> options)
     {
         _options = options.Value;
+        tokenizer = GptEncoding.GetEncoding("cl100k_base");
     }
 
     public async Task<Kernel> CreateKernelAsync()
@@ -226,7 +229,9 @@ public class KernelService
  
         }
 
-        conversation.Messages.Last().Content = fullMessage;
+        var msg = conversation.Messages.Last();
+        msg.Content = fullMessage;
+        msg.CompletionTokens = tokenizer.Encode(fullMessage).Count;
         return conversation;
     }
 }

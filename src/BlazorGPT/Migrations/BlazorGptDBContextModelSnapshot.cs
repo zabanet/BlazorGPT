@@ -159,6 +159,29 @@ namespace BlazorGPT.Migrations
                     b.ToTable("ScriptSteps");
                 });
 
+            modelBuilder.Entity("BlazorGPT.Data.Model.UserToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("CompletionTokens")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Credit")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PromptTokens")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("UserTokens");
+                });
+
             modelBuilder.Entity("BlazorGPT.Data.QuickProfile", b =>
                 {
                     b.Property<Guid>("Id")

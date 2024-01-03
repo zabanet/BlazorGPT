@@ -17,6 +17,7 @@ OpenAI API Key (or Azure OpenAI endpoint, resource name and key)
 3. Run the following commands from the **BlazorGPT** directory:
 
    ```bash 
+    dotnet ef migrations add  "ExampleMigartion" -s '..\BlazorGPT.Web\' --context BlazorGptDBContext
     dotnet ef database update -s '..\BlazorGPT.Web\' --context BlazorGptDBContext
    ```
    

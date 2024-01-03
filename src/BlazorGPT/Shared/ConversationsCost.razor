@@ -1,42 +1,35 @@
-﻿@using Microsoft.EntityFrameworkCore
-@using BlazorGPT.Data
-@using System.Security.Claims
-@InTokens tokens @Cost
+﻿@using BlazorGPT.Data
 
+Cost @Cost
 
 @code {
     [Inject]
-public IDbContextFactory<BlazorGptDBContext> DbContextFactory { get; set; } = null!;
+    public IDbContextFactory<BlazorGptDBContext> DbContextFactory { get; set; } = null!;
 
+    [Parameter]
+    public string UserId { get; set; }
 
+    public long ContextTokens = 0;
+    public long GeneratedTokens = 0;
 
-    [CascadingParameter]
-    private Task<AuthenticationState>? AuthenticationState { get; set; }
-
-    public string? UserId { get; set; } = null!;
-
-    public decimal InTokens = 0;
-
-    // sum the tokens for all messages in the conversation
+    //for gpt-4-1106-preview (Turbo)
+    const double promptTokenPrice = .01; //per 1K tokens
+    const double completionTokenPrice = .03; //per 1K tokens
+    decimal totalCost;
 
     protected override async Task OnInitializedAsync()
     {
-        if (AuthenticationState != null)
-        {
-            var authState = await AuthenticationState;
-            var user = authState?.User;
-            if (user?.Identity is not null && user.Identity.IsAuthenticated)
-            {
-                UserId = user.FindFirstValue(ClaimTypes.NameIdentifier);
-            }
-        }
         await using var ctx = await DbContextFactory.CreateDbContextAsync();
-        InTokens = await ctx.Messages.Where(m => m.Conversation.UserId == UserId).SumAsync(m => m.PromptTokens + m.CompletionTokens) ?? 0;
+        var usage = await ctx.UserTokens.SingleOrDefaultAsync(ut => ut.UserId == UserId);
 
-    }
+        if (usage is null) return;
 
-    public decimal CostPerToken = 0.002m / 1000;
+        //https://openai.com/pricing#language-models
+        ContextTokens = usage.PromptTokens * 2; // * 2 to make some profit
+        GeneratedTokens = usage.CompletionTokens * 2; // * 2 to make some profit
 
-    public string Cost => (InTokens * CostPerToken).ToString("C");
+        totalCost = (decimal)(ContextTokens / 1000.0 * promptTokenPrice + GeneratedTokens / 1000.0 * completionTokenPrice);
+      }
 
+    public string Cost => totalCost.ToString("C");
 }

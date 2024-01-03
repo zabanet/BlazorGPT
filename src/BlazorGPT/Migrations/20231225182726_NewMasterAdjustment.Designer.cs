@@ -12,20 +12,20 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BlazorGPT.Migrations
 {
     [DbContext(typeof(BlazorGptDBContext))]
-    [Migration("20230416114017_init")]
-    partial class init
+    [Migration("20231225182726_NewMasterAdjustment")]
+    partial class NewMasterAdjustment
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "7.0.4")
+                .HasAnnotation("ProductVersion", "8.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("BlazorGPT.Data.Conversation", b =>
+            modelBuilder.Entity("BlazorGPT.Data.Model.Conversation", b =>
                 {
                     b.Property<Guid?>("Id")
                         .ValueGeneratedOnAdd()
@@ -36,6 +36,19 @@ namespace BlazorGPT.Migrations
 
                     b.Property<DateTime>("DateStarted")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("FileUrls")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Model")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PluginsNames")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SKPlan")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Summary")
                         .HasColumnType("nvarchar(max)");
@@ -51,7 +64,7 @@ namespace BlazorGPT.Migrations
                     b.ToTable("Conversations");
                 });
 
-            modelBuilder.Entity("BlazorGPT.Data.ConversationMessage", b =>
+            modelBuilder.Entity("BlazorGPT.Data.Model.ConversationMessage", b =>
                 {
                     b.Property<Guid?>("Id")
                         .ValueGeneratedOnAdd()
@@ -62,8 +75,7 @@ namespace BlazorGPT.Migrations
 
                     b.Property<string>("Content")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)")
-                        .HasAnnotation("Relational:JsonPropertyName", "content");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid?>("ConversationId")
                         .HasColumnType("uniqueidentifier");
@@ -76,8 +88,7 @@ namespace BlazorGPT.Migrations
 
                     b.Property<string>("Role")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)")
-                        .HasAnnotation("Relational:JsonPropertyName", "role");
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
@@ -86,7 +97,7 @@ namespace BlazorGPT.Migrations
                     b.ToTable("Messages");
                 });
 
-            modelBuilder.Entity("BlazorGPT.Data.ConversationQuickProfile", b =>
+            modelBuilder.Entity("BlazorGPT.Data.Model.ConversationQuickProfile", b =>
                 {
                     b.Property<Guid>("ConversationId")
                         .HasColumnType("uniqueidentifier");
@@ -99,6 +110,79 @@ namespace BlazorGPT.Migrations
                     b.HasIndex("QuickProfileId");
 
                     b.ToTable("ConversationQuickProfiles", (string)null);
+                });
+
+            modelBuilder.Entity("BlazorGPT.Data.Model.Script", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SystemMessage")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Scripts");
+                });
+
+            modelBuilder.Entity("BlazorGPT.Data.Model.ScriptStep", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("ScriptId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ScriptId");
+
+                    b.ToTable("ScriptSteps");
+                });
+
+            modelBuilder.Entity("BlazorGPT.Data.Model.UserToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("CompletionTokens")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Credit")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PromptTokens")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("UserTokens");
                 });
 
             modelBuilder.Entity("BlazorGPT.Data.QuickProfile", b =>
@@ -129,64 +213,14 @@ namespace BlazorGPT.Migrations
                     b.ToTable("QuickProfiles");
                 });
 
-            modelBuilder.Entity("BlazorGPT.Data.Script", b =>
+            modelBuilder.Entity("BlazorGPT.Data.Model.Conversation", b =>
                 {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("SystemMessage")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Scripts");
-                });
-
-            modelBuilder.Entity("BlazorGPT.Data.ScriptStep", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Message")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Role")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("ScriptId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ScriptId");
-
-                    b.ToTable("ScriptSteps");
-                });
-
-            modelBuilder.Entity("BlazorGPT.Data.Conversation", b =>
-                {
-                    b.HasOne("BlazorGPT.Data.ConversationMessage", "BranchedFromMessage")
+                    b.HasOne("BlazorGPT.Data.Model.ConversationMessage", "BranchedFromMessage")
                         .WithMany("BranchedConversations")
                         .HasForeignKey("BranchedFromMessageId")
                         .OnDelete(DeleteBehavior.ClientNoAction);
 
-                    b.OwnsMany("BlazorGPT.Data.ConversationTreeState", "TreeStateList", b1 =>
+                    b.OwnsMany("BlazorGPT.Data.Model.ConversationTreeState", "TreeStateList", b1 =>
                         {
                             b1.Property<Guid?>("ConversationId")
                                 .HasColumnType("uniqueidentifier");
@@ -218,7 +252,7 @@ namespace BlazorGPT.Migrations
                             b1.Navigation("Conversation");
                         });
 
-                    b.OwnsOne("BlazorGPT.Data.HiveState", "HiveState", b1 =>
+                    b.OwnsOne("BlazorGPT.Data.Model.HiveState", "HiveState", b1 =>
                         {
                             b1.Property<Guid?>("ConversationId")
                                 .HasColumnType("uniqueidentifier");
@@ -256,14 +290,14 @@ namespace BlazorGPT.Migrations
                     b.Navigation("TreeStateList");
                 });
 
-            modelBuilder.Entity("BlazorGPT.Data.ConversationMessage", b =>
+            modelBuilder.Entity("BlazorGPT.Data.Model.ConversationMessage", b =>
                 {
-                    b.HasOne("BlazorGPT.Data.Conversation", "Conversation")
+                    b.HasOne("BlazorGPT.Data.Model.Conversation", "Conversation")
                         .WithMany("Messages")
                         .HasForeignKey("ConversationId")
                         .OnDelete(DeleteBehavior.Cascade);
 
-                    b.OwnsOne("BlazorGPT.Data.MessageState", "State", b1 =>
+                    b.OwnsOne("BlazorGPT.Data.Model.MessageState", "State", b1 =>
                         {
                             b1.Property<Guid?>("MessageId")
                                 .HasColumnType("uniqueidentifier");
@@ -299,9 +333,9 @@ namespace BlazorGPT.Migrations
                     b.Navigation("State");
                 });
 
-            modelBuilder.Entity("BlazorGPT.Data.ConversationQuickProfile", b =>
+            modelBuilder.Entity("BlazorGPT.Data.Model.ConversationQuickProfile", b =>
                 {
-                    b.HasOne("BlazorGPT.Data.Conversation", "Conversation")
+                    b.HasOne("BlazorGPT.Data.Model.Conversation", "Conversation")
                         .WithMany()
                         .HasForeignKey("ConversationId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -318,9 +352,9 @@ namespace BlazorGPT.Migrations
                     b.Navigation("QuickProfile");
                 });
 
-            modelBuilder.Entity("BlazorGPT.Data.ScriptStep", b =>
+            modelBuilder.Entity("BlazorGPT.Data.Model.ScriptStep", b =>
                 {
-                    b.HasOne("BlazorGPT.Data.Script", "Script")
+                    b.HasOne("BlazorGPT.Data.Model.Script", "Script")
                         .WithMany("Steps")
                         .HasForeignKey("ScriptId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -329,17 +363,17 @@ namespace BlazorGPT.Migrations
                     b.Navigation("Script");
                 });
 
-            modelBuilder.Entity("BlazorGPT.Data.Conversation", b =>
+            modelBuilder.Entity("BlazorGPT.Data.Model.Conversation", b =>
                 {
                     b.Navigation("Messages");
                 });
 
-            modelBuilder.Entity("BlazorGPT.Data.ConversationMessage", b =>
+            modelBuilder.Entity("BlazorGPT.Data.Model.ConversationMessage", b =>
                 {
                     b.Navigation("BranchedConversations");
                 });
 
-            modelBuilder.Entity("BlazorGPT.Data.Script", b =>
+            modelBuilder.Entity("BlazorGPT.Data.Model.Script", b =>
                 {
                     b.Navigation("Steps");
                 });

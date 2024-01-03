@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Radzen;
 using BlazorGPT.Data.Model;
+using BlazorGPT.Services;
 using BlazorGPT.Settings;
 using BlazorGPT.Shared.PluginSelector;
 using Microsoft.AspNetCore.Identity.UI.Services;
@@ -46,7 +47,7 @@ builder.Services.AddIdentityCore<IdentityUser>(options => options.SignIn.Require
 
 if (!string.IsNullOrEmpty( builder.Configuration["SendGridApiKey"]))
 {
-    builder.Services.AddSingleton<IEmailSender, SendGridEmailSender>();
+    builder.Services.AddSingleton<IEmailSender, EmailService>();
     builder.Services.AddSingleton<IEmailSender<IdentityUser>, SendGridIdentityEmailSender>();
 }
 else
@@ -142,5 +143,13 @@ app.MapRazorComponents<App>()
     .AddAdditionalAssemblies(typeof(Conversation).Assembly);
 
 app.MapAdditionalIdentityEndpoints();
+
+var supportedCultures = new[] { "en-US" };
+var localizationOptions = new RequestLocalizationOptions()
+    .SetDefaultCulture(supportedCultures[0])
+    .AddSupportedCultures(supportedCultures)
+    .AddSupportedUICultures(supportedCultures);
+
+app.UseRequestLocalization(localizationOptions);
 
 app.Run();

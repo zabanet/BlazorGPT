@@ -91,7 +91,7 @@
 </RadzenDataGrid>
 
 <pre class="position-absolute end-50">
-<ConversationsCost></ConversationsCost>
+<ConversationsCost UserId=@UserId></ConversationsCost>
 
 </pre>
 
@@ -130,6 +130,7 @@
 
     [CascadingParameter]
     private Task<AuthenticationState>? authenticationState { get; set; }
+
     public string? UserId { get; set; } = null!;
 
     protected override async Task OnInitializedAsync()

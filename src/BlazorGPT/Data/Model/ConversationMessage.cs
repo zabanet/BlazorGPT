@@ -1,18 +1,20 @@
 ﻿using Azure.AI.OpenAI;
- 
- 
+using SharpToken;
 
 
 namespace BlazorGPT.Data.Model;
 
 public class ConversationMessage
 {
-
+    private GptEncoding tokenizer = GptEncoding.GetEncoding("cl100k_base");
 
     public ConversationMessage(string role, string content)  
     {
         Role = role;
         Content = content;
+
+        if (Role == "user")
+            PromptTokens = tokenizer.Encode(Content).Count;
     }
 
     //public ConversationMessage(ChatMessage msg)  
@@ -31,8 +33,8 @@ public class ConversationMessage
 
     public ICollection<Conversation> BranchedConversations { get; set; } = new List<Conversation>();
 
-    public int? PromptTokens { get; set; }
-    public int? CompletionTokens { get; set; }
+    public int? PromptTokens { get; set; } = 0;
+    public int? CompletionTokens { get; set; } = 0;
 
     public DateTime Date { get; set; } = DateTime.UtcNow;
 

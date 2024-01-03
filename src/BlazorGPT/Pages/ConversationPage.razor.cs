@@ -13,6 +13,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.SemanticKernel;
 using Radzen;
 using Radzen.Blazor;
+using SharpToken;
 
 namespace BlazorGPT.Pages
 {
@@ -104,6 +105,7 @@ namespace BlazorGPT.Pages
         private Kernel _kernel = null!;
         private CancellationTokenSource _cancellationTokenSource;
         SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1);
+        private GptEncoding tokenizer;
 
         [Inject] private ModelConfigurationService _modelConfigurationService { get; set; }
 
@@ -122,9 +124,10 @@ namespace BlazorGPT.Pages
             }
 
             BotSystemInstruction ??= PipelineOptions.Value.Bot.BotSystemInstruction;
-
+             
 
             InterceptorHandler.OnUpdate += UpdateAndRedraw;
+            tokenizer = GptEncoding.GetEncoding("cl100k_base");//gpt-4 and above
         }
 
         private async Task  UpdateAndRedraw()
@@ -318,6 +321,8 @@ namespace BlazorGPT.Pages
             }
         }
 
+        private int contextTokens = 0;
+
         private async Task Send()
         {
             promptIsReady = false;
@@ -374,6 +379,26 @@ namespace BlazorGPT.Pages
                     Conversation.Summary =
                         Model.Prompt?.Substring(0, Model.Prompt.Length >= 75 ? 75 : Model.Prompt.Length);
                     wasSummarized = true;
+                }
+
+                var tokens = ctx.UserTokens.SingleOrDefault(u => u.UserId == Conversation.UserId);
+
+                if (tokens == null)
+                {
+                    var result = await ctx.UserTokens.AddAsync(new UserToken()
+                        { UserId = Conversation.UserId, PromptTokens = 0, CompletionTokens = 0 });
+
+                    tokens = result.Entity;
+                }
+
+                if (Conversation.Messages.Count > 1)
+                {
+                    var msg = Conversation.Messages.TakeLast(2).ToList();
+                    contextTokens = CalculateContextTokens(Conversation);
+                    tokens.PromptTokens += contextTokens;
+                    tokens.CompletionTokens += msg[1].CompletionTokens.Value;
+                    contextTokens += msg[0].PromptTokens.Value + msg[1].CompletionTokens.Value;
+
                 }
 
                 await ctx.SaveChangesAsync();
@@ -440,6 +465,16 @@ namespace BlazorGPT.Pages
 
             StateHasChanged();
             return s;
+        }
+
+        private int CalculateContextTokens(Conversation conversation)
+        {
+            int tokens = 0;
+
+            foreach (var message in conversation.Messages)
+                tokens += tokenizer.Encode(message.Content).Count;
+
+            return tokens;
         }
 
         private Conversations _conversations;

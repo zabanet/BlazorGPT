@@ -21,6 +21,7 @@ public class BlazorGptDBContext : DbContext
     public DbSet<ConversationQuickProfile> ConversationQuickProfiles { get; set; }
     public DbSet<MessageState> StateData { get; set; }
     public DbSet<ConversationTreeState> TreeStateData { get; set; }
+    public DbSet<UserToken> UserTokens { get; set; }
 
 
 
@@ -70,5 +71,7 @@ public class BlazorGptDBContext : DbContext
                     j.HasKey(cp => new { cp.ConversationId, cp.QuickProfileId });
                     j.ToTable("ConversationQuickProfiles");
                 });
+
+        modelBuilder.Entity<UserToken>();
     }
 }
