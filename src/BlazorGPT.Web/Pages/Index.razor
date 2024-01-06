@@ -1,5 +1,6 @@
 ﻿@page "/"
 @using System.Security.Claims
+@using Microsoft.Data.SqlClient
 
 
 @inject NavigationManager NavigationManager
@@ -18,21 +19,33 @@
     private async Task SeedSamples()
     {
         var confirm = await DialogService.Confirm("This will add sample Quick Profiles and Scripts. Are you sure you want to continue?", "Confirm", new ConfirmOptions { OkButtonText = "Yes", CancelButtonText = "No" });
+        
         if (confirm.HasValue && confirm.Value)
         {
-            await SampleDataSeeder.SeedQPDataForUser(UserId);
-            await SampleDataSeeder.SeedScriptsDataForUser(UserId);
+            try
+            {
+                await SampleDataSeeder.SeedQPDataForUser(UserId);
+                await SampleDataSeeder.SeedScriptsDataForUser(UserId);
+            }
+            catch (Exception e)
+            {
+                var res = await DialogService.Alert($"Couldn't add samples! Maybe you added them before?", "Dang!", new AlertOptions { OkButtonText = "Ok" });
+                return;
+            }
+
+            var alert = await DialogService.Alert("Sample Quick Profiles and Scripts have been added.", "Done", new AlertOptions { OkButtonText = "Ok" });
+
         }
 
-        var alert = await DialogService.Alert("Sample Quick Profiles and Scripts have been added.", "Done", new AlertOptions { OkButtonText = "Ok" });
     }
 
-    public async Task OnInitializedAsync()
+    protected override async Task OnInitializedAsync()
     {
         if (AuthenticationState != null)
         {
             var authState = await AuthenticationState;
             var user = authState?.User;
+            
             if (user?.Identity is not null && user.Identity.IsAuthenticated)
             {
                 UserId = user.FindFirstValue(ClaimTypes.NameIdentifier);

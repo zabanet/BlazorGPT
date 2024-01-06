@@ -72,6 +72,14 @@ public class BlazorGptDBContext : DbContext
                     j.ToTable("ConversationQuickProfiles");
                 });
 
+        modelBuilder.Entity<QuickProfile>()
+            .HasIndex(t => new { t.UserId, t.Name })
+            .IsUnique(); 
+
+        modelBuilder.Entity<Script>()
+            .HasIndex(t => new { t.UserId, t.Name })
+            .IsUnique();
+
         modelBuilder.Entity<UserToken>();
     }
 }

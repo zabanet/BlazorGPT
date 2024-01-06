@@ -61,8 +61,6 @@ namespace BlazorGPT.Data
             profiles.Add(new QuickProfile()
             {
                 UserId = userId,
-
-
                 Name = "C#",
                 EnabledDefault = false,
                 InsertAt = InsertAt.Before,
@@ -71,9 +69,8 @@ namespace BlazorGPT.Data
             });
 
             profiles.Add(new QuickProfile()
-            {UserId = userId,
-
-
+            {
+                UserId = userId,
                 Name = "Dad joke",
                 EnabledDefault = false,
                 InsertAt = InsertAt.Before,
