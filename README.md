@@ -1,4 +1,4 @@
-# BlazorGPT
+#  prep<span style="color:#E30B5C;">AI</span>dopen
 
 A Blazor Server chat application that uses the GPT endpoints available from OpenAI and MS Azure OpenAI. 
 
@@ -9,18 +9,8 @@ A Blazor Server chat application that uses the GPT endpoints available from Open
 - Restart a conversation from a previous step. 
 - Customize the chat experience with middlewares and filters.
 
-As a developer it's extensible and you can write your own plugins in the form of IInterceptors that intercepts the chat messages and modify them before they are sent to the API. 
-
-AI support is based on <a href="https://learn.microsoft.com/en-us/semantic-kernel/overview">Semantic Kernel</a>, a project that adds support for API:s with concepts such as planners and support for Bing Copilots and OpenAI plugins.
-
-
-[GitHub](https://github.com/magols/BlazorGPT)
-
-[Installation instructions](docs/setup.md)
-
-
 ## Features
-- Chat with GPT-3.5 or GPT-4
+- Chat with GPT-3.5 or GPT-4 (Turbo)
   ![](docs/images/chat.png)
   
 - Create and manage multiple chat sessions with history
@@ -37,5 +27,3 @@ AI support is based on <a href="https://learn.microsoft.com/en-us/semantic-kerne
   ![](docs/images/branched.png)
 
 - Restart a conversation from a previous step
-
-[Installation instructions](docs/setup.md)

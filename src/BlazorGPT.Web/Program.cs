@@ -1,7 +1,6 @@
 using Blazored.LocalStorage;
 using BlazorGPT;
 using BlazorGPT.Components.Account;
-using BlazorGPT.Components.FileUpload;
 using BlazorGPT.Data;
 using BlazorGPT.Embeddings;
 using BlazorGPT.Pipeline;
@@ -27,6 +26,12 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.Cookie.HttpOnly = true;
+    options.ExpireTimeSpan = TimeSpan.FromDays(30);
+    options.SlidingExpiration = true;
+});
 
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityUserAccessor>();
