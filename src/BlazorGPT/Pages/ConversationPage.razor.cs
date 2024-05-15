@@ -440,8 +440,8 @@ namespace BlazorGPT.Pages
             }
             catch (Exception e)
             {
-                var res = await DialogService.Alert(e.StackTrace,
-                    "An error occurred. Please try again/later. " + e.Message);
+                var res = await DialogService.Alert(e.Message,
+                    "An error occurred. Please try again/later. ");
                 Conversation.Messages.RemoveAt(Conversation.Messages.Count - 1);
                 Console.WriteLine(e.StackTrace);
                 StateHasChanged();
