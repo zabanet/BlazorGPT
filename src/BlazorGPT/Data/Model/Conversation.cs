@@ -36,7 +36,7 @@ public class Conversation
     public List<ConversationTreeState> TreeStateList { get; set; } = new();
 
     [NotMapped]
-    public Conversation HiveConversation { get; set; }
+    public Conversation HiveConversation { get; set; } = null!;
 
     public HiveState? HiveState
     { get; set; }
@@ -69,19 +69,4 @@ public class Conversation
         return conversation;
     }
  
-}
-
-public static class ConversationExtensions
-{
-    public static bool IsStarted(this Conversation conversation)
-    {
-        return conversation.Messages.Count > 1;
-    }
-
-    // last message was from assistant
-    public static bool IsAssistantTurn(this ConversationMessage message)
-    {
-        return message.Role == ConversationRole.Assistant;
-    }
-
 }

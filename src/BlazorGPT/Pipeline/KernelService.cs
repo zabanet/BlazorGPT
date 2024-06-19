@@ -1,5 +1,6 @@
-﻿using System.Globalization;
-using System.Linq;
+﻿using BlazorGPT.Ollama;
+using Codeblaze.SemanticKernel.Connectors.Ollama;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
@@ -9,13 +10,7 @@ using Microsoft.SemanticKernel.Connectors.Sqlite;
 using Microsoft.SemanticKernel.Memory;
 using SharpToken;
 using StackExchange.Redis;
-#pragma warning disable SKEXP0003
-#pragma warning disable SKEXP0011
-#pragma warning disable SKEXP0052
-#pragma warning disable SKEXP0012
 
-#pragma warning disable SKEXP0027
-#pragma warning disable SKEXP0028
 namespace BlazorGPT.Pipeline;
 
 public class KernelService
@@ -74,13 +69,13 @@ public class KernelService
 #pragma warning disable SKEXP0011
             builder
             .AddAzureOpenAIChatCompletion(
-                deploymentName: _options.Providers.AzureOpenAI.ChatModels.First( p => p.Key == model).Key,
+                deploymentName: _options.Providers.AzureOpenAI.ChatModels.First( p => p.Value == model).Key,
                 modelId: model,
                 endpoint: _options.Providers.AzureOpenAI.Endpoint,
                 apiKey: _options.Providers.AzureOpenAI.ApiKey
                 )
             .AddAzureOpenAITextEmbeddingGeneration(
-                deploymentName: _options.Providers.AzureOpenAI.EmbeddingsModels.First(p => p.Key == _options.Providers.AzureOpenAI.EmbeddingsModel).Key,
+                deploymentName: _options.Providers.AzureOpenAI.EmbeddingsModels.First(p => p.Value == _options.Providers.AzureOpenAI.EmbeddingsModel).Key,
                 modelId: _options.Providers.AzureOpenAI.EmbeddingsModel,
                 endpoint: _options.Providers.AzureOpenAI.Endpoint,
                 apiKey: _options.Providers.AzureOpenAI.ApiKey
@@ -100,16 +95,23 @@ public class KernelService
 #pragma warning restore SKEXP0011 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         }
 
+        if (provider == ChatModelsProvider.Ollama)
+        {
+	        builder.Services.AddTransient<HttpClient>();
+			model ??= _options.Providers.Local.ChatModel;
+            builder.AddOllamaChatCompletion(model, _options.Providers.Ollama.BaseUrl); 
+        }
+
         return builder.Build();
     }
 
     public async Task<ISemanticTextMemory> GetMemoryStore()
     {
-        return await GetMemoryStore(null);
+        return await GetMemoryStore(null, null);
     }
 
 
-    public async Task<ISemanticTextMemory> GetMemoryStore(EmbeddingsModelProvider? provider)
+    public async Task<ISemanticTextMemory> GetMemoryStore(EmbeddingsModelProvider? provider, string? model)
     {
         if (provider == null)
         {
@@ -121,7 +123,12 @@ public class KernelService
             {
                 provider = EmbeddingsModelProvider.AzureOpenAI;
             }
-            else if (_options.Providers.Local.IsConfigured())
+            else if (_options.Providers.Ollama.IsConfigured())
+            {
+	            provider = EmbeddingsModelProvider.Ollama;
+            }
+
+			else if (_options.Providers.Local.IsConfigured())
             {
                 provider = EmbeddingsModelProvider.Local;
             }
@@ -140,18 +147,19 @@ public class KernelService
         {
             var redis = ConnectionMultiplexer.Connect(_options.Embeddings.RedisConfigurationString);
             var _db = redis.GetDatabase();
-            memoryStore = new RedisMemoryStore(_db);
+
+            // local use would indicate nomic-embed, so adjust vectors
+            var vectorSize = provider == EmbeddingsModelProvider.Ollama ? 768 : 1536;
+            memoryStore = new RedisMemoryStore(_db, vectorSize);
         }
 
         if (provider == EmbeddingsModelProvider.AzureOpenAI)
         {
-#pragma warning disable SKEXP0011
-#pragma warning disable SKEXP0052
 
             var mem = new MemoryBuilder()
             .WithAzureOpenAITextEmbeddingGeneration(
                 deploymentName: _options.Providers.AzureOpenAI.EmbeddingsModels.First(o => o.Value == _options.Providers.AzureOpenAI.EmbeddingsModel).Key,
-                modelId: _options.Providers.AzureOpenAI.EmbeddingsModel,
+                modelId: model ?? _options.Providers.AzureOpenAI.EmbeddingsModel,
                 endpoint: _options.Providers.AzureOpenAI.Endpoint,
                 apiKey: _options.Providers.AzureOpenAI.ApiKey
             )
@@ -164,14 +172,30 @@ public class KernelService
         if (provider == EmbeddingsModelProvider.OpenAI)
         {
             var mem = new MemoryBuilder()
-                .WithOpenAITextEmbeddingGeneration(modelId:_options.Providers.OpenAI.EmbeddingsModel, _options.Providers.OpenAI.ApiKey)
+                .WithOpenAITextEmbeddingGeneration(
+                    modelId: model ?? _options.Providers.OpenAI.EmbeddingsModel, _options.Providers.OpenAI.ApiKey)
                 .WithMemoryStore(memoryStore)
                 .Build();
             return mem;
         }
 
         // todo: add local embeddings
-        throw new InvalidOperationException("No embeddings provider is configured");
+
+        if (provider == EmbeddingsModelProvider.Ollama)
+        {
+            
+            var httpClient = new HttpClient();
+           var generation = new OllamaTextEmbeddingGenerationService(model ?? _options.Providers.Ollama.ChatModel,
+               _options.Providers.Ollama.BaseUrl,
+               httpClient,
+               null);
+
+            var mem = new MemoryBuilder()
+				.WithTextEmbeddingGeneration(generation)
+				.WithMemoryStore(memoryStore)
+				.Build();
+			return mem;
+		}
 
         return new MemoryBuilder()
             .WithMemoryStore(memoryStore)
@@ -211,7 +235,7 @@ public class KernelService
         return chatHistory.ToConversation();
     }
 
-    public async Task<Conversation> ChatCompletionAsStreamAsync(Kernel kernel,
+	public async Task<Conversation> ChatCompletionAsStreamAsync(Kernel kernel,
         Conversation conversation,
         PromptExecutionSettings? requestSettings = default,
         Func<string, Task<string>>? onStreamCompletion = null,
@@ -221,7 +245,6 @@ public class KernelService
 
         var chatCompletion = kernel.GetRequiredService<IChatCompletionService>();
         var fullMessage = string.Empty;
-
         var history = conversation.ToChatHistory();
 
         await foreach (var completionResult in chatCompletion.GetStreamingChatMessageContentsAsync(history,

@@ -1,18 +1,21 @@
 using System.ComponentModel;
 using BlazorGPT.Pipeline;
+using BlazorGPT.Settings;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.SemanticKernel;
-
-#pragma warning disable SKEXP0003
 
 namespace BlazorGPT.Plugins;
 
 public class EmbeddingsPlugin
 {
     private readonly IServiceProvider _serviceProvider;
+    private readonly ModelConfigurationService _modelConfigurationService;
+
 
     public EmbeddingsPlugin(IServiceProvider serviceProvider)
     {
+        _modelConfigurationService = serviceProvider.GetService<ModelConfigurationService>()!;
+
         _serviceProvider = serviceProvider;
     }
 
@@ -29,9 +32,12 @@ public class EmbeddingsPlugin
         int limit = 10
     )
     {
+        var model = _modelConfigurationService.GetDefaultConfig();
+
         var kernelService =
             _serviceProvider.GetRequiredService<KernelService>();
-        var memStore = await kernelService.GetMemoryStore();
+
+        var memStore = await kernelService.GetMemoryStore(model.EmbeddingsProvider, model.EmbeddingsModel);
         var res = memStore.SearchAsync(collection, input, limit, relevance).ConfigureAwait(true);
 
         var fullText = "";

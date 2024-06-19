@@ -17,7 +17,7 @@ namespace BlazorGPT.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.0")
+                .HasAnnotation("ProductVersion", "8.0.3")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -109,6 +109,34 @@ namespace BlazorGPT.Migrations
                     b.ToTable("ConversationQuickProfiles", (string)null);
                 });
 
+            modelBuilder.Entity("BlazorGPT.Data.Model.QuickProfile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("EnabledDefault")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("InsertAt")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("QuickProfiles");
+                });
+
             modelBuilder.Entity("BlazorGPT.Data.Model.Script", b =>
                 {
                     b.Property<Guid>("Id")
@@ -191,17 +219,11 @@ namespace BlazorGPT.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("Content")
+                    b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<bool>("EnabledDefault")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("InsertAt")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Name")
+                    b.Property<string>("Text")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
@@ -345,7 +367,7 @@ namespace BlazorGPT.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("BlazorGPT.Data.QuickProfile", "QuickProfile")
+                    b.HasOne("BlazorGPT.Data.Model.QuickProfile", "QuickProfile")
                         .WithMany()
                         .HasForeignKey("QuickProfileId")
                         .OnDelete(DeleteBehavior.Cascade)

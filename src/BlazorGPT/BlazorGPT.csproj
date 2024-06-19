@@ -4,10 +4,11 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyVersion>2.5.3.0</AssemblyVersion>
   </PropertyGroup>
   
   <PropertyGroup>
-    <NoWarn>SKEXP0001,SKEXP0011,SKEXP0060</NoWarn>
+    <NoWarn>SKEXP0001,SKEXP0060, SKEXP0010, SKEXP0011, SKEXP0020, SKEXP0027, SKEXP0028, CS8981</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,36 +17,35 @@
 
   <ItemGroup>
     <PackageReference Include="BlazorAnimate" Version="3.0.0" />
-    <PackageReference Include="Blazored.LocalStorage" Version="4.4.0" />
+    <PackageReference Include="Blazored.LocalStorage" Version="4.5.0" />
 
-    <PackageReference Include="BlazorPro.BlazorSize" Version="6.2.2" />
+    <PackageReference Include="BlazorPro.BlazorSize" Version="8.0.0" />
     <PackageReference Include="CoreCLR-NCalc" Version="3.0.119" />
+    <PackageReference Include="Codeblaze.SemanticKernel.Connectors.Ollama" Version="1.3.1" />
     <PackageReference Include="MailKit" Version="4.3.0" />
-    <PackageReference Include="Markdig" Version="0.34.0" />
-    <PackageReference Include="Markdown.ColorCode" Version="2.1.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="8.0.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="8.0.0" />
+    <PackageReference Include="Markdig" Version="0.37.0" />
+    <PackageReference Include="Markdown.ColorCode" Version="2.2.2" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="8.0.6" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.6" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="8.0.6" />
 
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.0">
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.6">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
 
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.6" />
 
-
-    <PackageReference Include="Microsoft.SemanticKernel" Version="1.0.1" />
-    <PackageReference Include="Microsoft.SemanticKernel.Connectors.Redis" Version="1.0.1-alpha" />
-    <PackageReference Include="Microsoft.SemanticKernel.Connectors.Sqlite" Version="1.0.1-alpha" />
-    <!--<PackageReference Include="Microsoft.SemanticKernel.Planners.Core" Version="1.0.0-beta8" />-->
-    <PackageReference Include="Microsoft.SemanticKernel.Planners.Handlebars" Version="1.0.1-preview" />
-    <!--<PackageReference Include="Microsoft.SemanticKernel.Planners.OpenAI" Version="1.0.0-rc4" />-->
-    <PackageReference Include="Microsoft.SemanticKernel.Plugins.Core" Version="1.0.1-alpha" />
+    <PackageReference Include="Microsoft.SemanticKernel" Version="1.14.1" />
+    <PackageReference Include="Microsoft.SemanticKernel.Connectors.Redis" Version="1.14.1-alpha" />
+    <PackageReference Include="Microsoft.SemanticKernel.Connectors.Sqlite" Version="1.14.1-alpha" />
+    <PackageReference Include="Microsoft.SemanticKernel.Planners.Handlebars" Version="1.14.1-preview" />
+    <PackageReference Include="Microsoft.SemanticKernel.Planners.OpenAI" Version="1.14.1-preview" />
+    <PackageReference Include="Microsoft.SemanticKernel.Plugins.Core" Version="1.14.1-alpha" />
 
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="NRedisStack" Version="0.11.0" />
-    <PackageReference Include="Radzen.Blazor" Version="4.23.4" />
+    <PackageReference Include="NRedisStack" Version="0.12.0" />
+    <PackageReference Include="Radzen.Blazor" Version="4.32.5" />
     <PackageReference Include="SharpToken" Version="1.2.14" />
 
   </ItemGroup>
@@ -72,30 +72,16 @@
     <Content Include="wwwroot\state\**" Watch="false" />
   </ItemGroup>
 
-
-  <!--<ItemGroup>
-    <ProjectReference Include="..\..\..\semantic-kernel\dotnet\src\Skills\Skills.Web\Skills.Web.csproj" />
-
-    <ProjectReference Include="..\..\..\semantic-kernel\dotnet\src\Connectors\Connectors.AI.OpenAI\Connectors.AI.OpenAI.csproj" />
-    <ProjectReference Include="..\..\..\semantic-kernel\dotnet\src\Connectors\Connectors.Memory.Sqlite\Connectors.Memory.Sqlite.csproj" />
-    <ProjectReference Include="..\..\..\semantic-kernel\dotnet\src\Connectors\Connectors.Memory.Redis\Connectors.Memory.Redis.csproj" />
-
-    <ProjectReference Include="..\..\..\semantic-kernel\dotnet\src\Extensions\Planning.ActionPlanner\Planning.ActionPlanner.csproj" />
-    <ProjectReference Include="..\..\..\semantic-kernel\dotnet\src\Extensions\Planning.SequentialPlanner\Planning.SequentialPlanner.csproj" />
-    <ProjectReference Include="..\..\..\semantic-kernel\dotnet\src\Skills\Skills.OpenAPI\Skills.OpenAPI.csproj" />
-    <ProjectReference Include="..\..\..\semantic-kernel\dotnet\src\SemanticKernel.Abstractions\SemanticKernel.Abstractions.csproj" />
-
-    <ProjectReference Include="..\..\..\semantic-kernel\dotnet\src\Skills\Skills.Core\Skills.Core.csproj" />
-    
-
-  </ItemGroup>-->
-
-  <ItemGroup><!--<ProjectReference Include="..\..\..\semantic-kernel\dotnet\src\SemanticKernel\SemanticKernel.csproj" />-->
-
-    <!--<ProjectReference Include="..\..\..\semantic-kernel\dotnet\src\Planners\Planners.Core\Planners.Core.csproj" />-->
-
-  
-  </ItemGroup>
  
+  <!--<ItemGroup>
+    
+     <ProjectReference Include="..\..\..\semantic-kernel\dotnet\src\Connectors\Connectors.OpenAI\Connectors.OpenAI.csproj" />
+    <ProjectReference Include="..\..\..\semantic-kernel\dotnet\src\Connectors\Connectors.Memory.Redis\Connectors.Memory.Redis.csproj" />
+    <ProjectReference Include="..\..\..\semantic-kernel\dotnet\src\Connectors\Connectors.Memory.SQLIte\Connectors.Memory.SQLIte.csproj" />
+    <ProjectReference Include="..\..\..\semantic-kernel\dotnet\src\Planners\Planners.OpenAI\Planners.OpenAI.csproj" />
+    <ProjectReference Include="..\..\..\semantic-kernel\dotnet\src\Plugins\Plugins.Memory\Plugins.Memory.csproj" />
+    <ProjectReference Include="..\..\..\semantic-kernel\dotnet\src\SemanticKernel.Abstractions\SemanticKernel.Abstractions.csproj" />
+    <ProjectReference Include="..\..\..\semantic-kernel\dotnet\src\SemanticKernel.Core\SemanticKernel.Core.csproj" />
+  </ItemGroup>-->
 
 </Project>

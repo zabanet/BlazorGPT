@@ -1,6 +1,9 @@
 ﻿using Blazored.LocalStorage;
+using BlazorGPT.Settings;
 using BlazorGPT.Shared.PluginSelector;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Microsoft.SemanticKernel.Planning.Handlebars;
 
 namespace BlazorGPT.Pipeline.Interceptors;
@@ -8,39 +11,30 @@ namespace BlazorGPT.Pipeline.Interceptors;
 public class PluginInterceptor : InterceptorBase, IInterceptor
 {
     private CancellationToken _cancellationToken;
-    private PluginsRepository _pluginsRepository;
-    private ILocalStorageService? _localStorageService;
     private KernelService _kernelService;
-    private IServiceProvider _serviceProvider;
+    private readonly ILocalStorageService? _localStorageService;
+    private readonly PluginsRepository _pluginsRepository;
+    private readonly IServiceProvider _serviceProvider;
+    private readonly ModelConfigurationService _modelConfigurationService;
 
-    public PluginInterceptor(IDbContextFactory<BlazorGptDBContext> context,
-        ConversationsRepository conversationsRepository,
-        PluginsRepository pluginsRepository,
-            ILocalStorageService localStorageService,
-        KernelService kernelService,
-        IServiceProvider serviceProvider) : base(context, conversationsRepository)
+    public PluginInterceptor(IServiceProvider serviceProvider) : base(serviceProvider)
     {
         _serviceProvider = serviceProvider;
-        _kernelService = kernelService;
-        _localStorageService = localStorageService;
-        _pluginsRepository = pluginsRepository;
+        _kernelService = _serviceProvider.GetRequiredService<KernelService>();
+        _localStorageService = _serviceProvider.GetRequiredService<ILocalStorageService>();
+        _pluginsRepository = _serviceProvider.GetRequiredService<PluginsRepository>();
+        _modelConfigurationService = _serviceProvider.GetRequiredService<ModelConfigurationService>();
     }
 
-    public string Name { get; } = "Plugins";
-    public bool Internal { get; } = false;
+    public override string Name { get; } = "Plugins with Handlebars Planner";
 
-    public Task<Conversation> Receive(Kernel kernel, Conversation conversation, CancellationToken cancellationToken = default)
-    {
-        return Task.FromResult(conversation);
-    }
 
-    public async Task<Conversation> Send(Kernel kernel, Conversation conversation, CancellationToken cancellationToken = default)
+    public override async Task<Conversation> Send(Kernel kernel, Conversation conversation,
+        Func<string, Task<string>>? onComplete = null,
+        CancellationToken cancellationToken = default)
     {
         _cancellationToken = cancellationToken;
-        if (conversation.Messages.Count() == 2)
-        {
-            await Intercept(kernel, conversation);
-        }
+        if (conversation.Messages.Count() == 2) await Intercept(kernel, conversation);
 
         conversation.StopRequested = true;
         return conversation;
@@ -48,26 +42,32 @@ public class PluginInterceptor : InterceptorBase, IInterceptor
 
     private async Task Intercept(Kernel kernel, Conversation conversation)
     {
-
         await LoadPluginsAsync(kernel);
-        var ask = conversation.Messages.Last().Content;
 
+        var ask = conversation.Messages.Last().Content;
         var lastMsg = new ConversationMessage("assistant", "Constructing plan...");
         conversation.Messages.Add(lastMsg);
         OnUpdate?.Invoke();
 
-        var planner = new HandlebarsPlanner(new HandlebarsPlannerOptions() { AllowLoops = true });
+        var planner = new HandlebarsPlanner(new HandlebarsPlannerOptions
+        {
+            AllowLoops = true,
+            ExecutionSettings = new OpenAIPromptExecutionSettings
+            {
+                MaxTokens = _modelConfigurationService.GetDefaultConfig().MaxPlannerTokens,
+            }
+        });
 
         try
         {
-            var plan = await planner.CreatePlanAsync(kernel, ask, _cancellationToken);
+            var plan = await planner.CreatePlanAsync(kernel, ask, cancellationToken: _cancellationToken);
             conversation.SKPlan = plan.ToString();
 
             lastMsg.Content = "Executing plan...";
             conversation.PluginsNames = string.Join(",", kernel.Plugins.Select(o => o.Name));
             OnUpdate?.Invoke();
 
-            KernelArguments args = new KernelArguments();
+            var args = new KernelArguments();
             var result = await plan.InvokeAsync(kernel, args, _cancellationToken);
 
             lastMsg.Content = result;
@@ -76,49 +76,49 @@ public class PluginInterceptor : InterceptorBase, IInterceptor
         {
             lastMsg.Content = e.Message + "\n";
             OnUpdate?.Invoke();
-
         }
     }
+
     private async Task LoadPluginsAsync(Kernel kernel)
     {
-        var semanticPlugins = await  _pluginsRepository.GetFromDiskAsync();
+        var semanticPlugins = await _pluginsRepository.GetSemanticPlugins();
 
-        List<string> nativePlugins = new List<string>();
-        // todo: bad to read from browser here but here we are
+        List<Plugin> pluginsEnabledInSettings = new List<Plugin>();
+        IEnumerable<string> enabledNames = Enumerable.Empty<string>();
         if (_localStorageService != null)
         {
-          var enabledPlugins = await _localStorageService.GetItemAsync<List<Plugin>>("bgpt_plugins", _cancellationToken);
-            var enabledNames = enabledPlugins.Select(o => o.Name);
+            pluginsEnabledInSettings =
+                await _localStorageService.GetItemAsync<List<Plugin>>("bgpt_plugins", _cancellationToken);
+            enabledNames = pluginsEnabledInSettings.Select(o => o.Name);
             semanticPlugins = semanticPlugins.Where(o => enabledNames.Contains(o.Name)).ToList();
-
-            var native = enabledPlugins.Where(o => o.Name.LastIndexOf(".") > 1);
-            nativePlugins = native.Select(o => o.Name).ToList();
- 
         }
 
         foreach (var plugin in semanticPlugins)
         {
-            var path = Path.Combine(Environment.CurrentDirectory, "Plugins", plugin.Name);
+            var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Plugins", plugin.Name);
             kernel.ImportPluginFromPromptDirectory(path, plugin.Name);
         }
 
-        foreach (var className in nativePlugins)
+
+        var nativePlugins = new List<Plugin>();
+        nativePlugins.AddRange(  _pluginsRepository.GetCoreNative());
+        nativePlugins.AddRange(_pluginsRepository.GetExternalNative());
+
+        nativePlugins = nativePlugins.Where(o => enabledNames.Contains(o.Name)).ToList();
+
+        foreach (var plugin in nativePlugins)
         {
-            // instantiate the class
-            var type = Type.GetType(className);
-            if (type != null)
+
+            try
             {
-                var instance = Activator.CreateInstance(type, _serviceProvider );
-                try
-                {
-                    var pluginName = className.Substring(className.LastIndexOf(".") + 1);
-                    kernel.ImportPluginFromObject(instance, pluginName);
-                }
-                catch (Exception e)
-                {
-                    throw new InvalidOperationException("Could not load native plugins", e);
-                }
+                string pluginName = plugin.Name.Substring(plugin.Name.LastIndexOf(".", StringComparison.Ordinal) + 1);
+                kernel.ImportPluginFromObject(plugin.Instance, pluginName);
+            }
+            catch (Exception e)
+            {
+                throw new InvalidOperationException("Could not load native plugins", e);
             }
         }
+
     }
 }

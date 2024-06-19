@@ -1,4 +1,5 @@
 ﻿using System.Text.RegularExpressions;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.SemanticKernel;
 
@@ -8,24 +9,26 @@ public class StateFileSaveInterceptor : InterceptorBase, IInterceptor
 {
     private readonly string _path;
 
-    public StateFileSaveInterceptor(IDbContextFactory<BlazorGptDBContext> context, ConversationsRepository conversationsRepository, IOptions<PipelineOptions> options
-    ) : base(context, conversationsRepository)
+
+    public StateFileSaveInterceptor(IServiceProvider serviceProvider) : base(serviceProvider)
     {
-        _path = options.Value.StateFileSaveInterceptorPath;
+        var options = serviceProvider.GetRequiredService<IOptions<PipelineOptions>>().Value;
+        _path = options.StateFileSaveInterceptorPath ?? string.Empty;
     }
 
-    public string Name { get; } = "Save file";
-    public bool Internal { get; } = true;
+    public override string Name { get; } = "Save file";
+    public override bool Internal { get; } = true;
 
-    public async Task<Conversation> Receive(Kernel kernel, Conversation conversation, CancellationToken cancellationToken = default)
+    public override async Task<Conversation> Receive(Kernel kernel, Conversation conversation, Func<string, Task<string>>? onComplete = null,
+        CancellationToken cancellationToken = default)
     {
         await ParseMessageAndSaveStateToDisk(conversation.Messages.Last());
         return conversation;
     }
 
-    public async Task<Conversation> Send(Kernel kernel, Conversation conversation, CancellationToken cancellationToken = default)
+    public Task<Conversation> Send(Kernel kernel, Conversation conversation, CancellationToken cancellationToken = default)
     {
-        return conversation;
+        return Task.FromResult(conversation);
     }
 
     async Task ParseMessageAndSaveStateToDisk(ConversationMessage lastMsg)

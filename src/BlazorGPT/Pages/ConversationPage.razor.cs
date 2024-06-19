@@ -64,15 +64,15 @@ namespace BlazorGPT.Pages
         public IOptions<PipelineOptions> PipelineOptions { get; set; } = null!;
 
         [Inject]
-        public QuickProfileRepository QuickProfileRepository { get; set; }
+        public required QuickProfileRepository QuickProfileRepository { get; set; }
 
         [Inject]
-        public IResizeListener ResizeListener { get; set; }
+        public required IResizeListener ResizeListener { get; set; }
         [Inject]
         public NavigationManager NavigationManager { get; set; } = null!;
         
         [Inject]
-        public KernelService KernelService{ get; set; }
+        public required KernelService KernelService{ get; set; }
 
 
         [Inject]
@@ -81,15 +81,15 @@ namespace BlazorGPT.Pages
         public ScriptRepository ScriptRepository { get; set; } = null!;
 
         [Inject]
-        public ConversationsRepository ConversationsRepository { get; set; }
+        public required ConversationsRepository ConversationsRepository { get; set; }
         [Inject]
         public DialogService DialogService { get; set; } = null!;
 
         [Inject]
-        public IInterceptorHandler  InterceptorHandler{ get; set; }
+        public required IInterceptorHandler  InterceptorHandler{ get; set; }
 
         [Inject]
-        public ConversationInterop? Interop { get; set; }
+        public required ConversationInterop Interop { get; set; }
        
         private Conversation Conversation = new();
 
@@ -97,23 +97,21 @@ namespace BlazorGPT.Pages
 
         bool promptIsReady;
         string scriptInput;
-        bool showTokens = false;
 
         private int controlHeight { get; set; }
         private int initialControlHeight = 0;
 
         private Kernel _kernel = null!;
-        private CancellationTokenSource _cancellationTokenSource;
+        private CancellationTokenSource _cancellationTokenSource = null!;
         SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1);
         private GptEncoding tokenizer;
 
-        [Inject] private ModelConfigurationService _modelConfigurationService { get; set; }
+        [Inject] private ModelConfigurationService? _modelConfigurationService { get; set; } = null!;
 
          protected override async Task OnInitializedAsync()
          {
 
-
-            if (UserId == null && AuthenticationState != null)
+             if (UserId == null && AuthenticationState != null)
             {
                 var authState = await AuthenticationState;
                 var user = authState?.User;
@@ -196,6 +194,9 @@ namespace BlazorGPT.Pages
                         }
                     }
                     Conversation = loaded;
+
+
+
                 }
                 else
                 {
@@ -227,8 +228,13 @@ namespace BlazorGPT.Pages
 
         }
 
-
         private async Task SendConversation()
+        {
+            await SendConversation(false);
+        }
+
+
+        private async Task SendConversation(bool rerun)
         {
             IsBusy = true;
 
@@ -237,30 +243,27 @@ namespace BlazorGPT.Pages
             if (!Conversation.HasStarted())
             {
                 var selected = _profileSelectorStart != null ? _profileSelectorStart.SelectedProfiles : new List<QuickProfile>();
+                
                 string startMsg = string.Join(" ", selected.Select(p => p.Content));
                 if (!string.IsNullOrEmpty(startMsg))
                     startMsg += "\n\n";
 
-                Conversation.AddMessage(new ConversationMessage("user", startMsg + Model.Prompt));
-
-                Conversation.DateStarted = DateTime.UtcNow;
+                if (!rerun)
+                {
+                    Conversation.AddMessage(new ConversationMessage("user", startMsg + Model.Prompt!));
+                    Conversation.DateStarted = DateTime.UtcNow;
+                }
                 StateHasChanged();
 
             }
-            else
+            else if (!rerun)
             {
                 Conversation.AddMessage(new ConversationMessage("user", Model.Prompt!));
                 StateHasChanged();  
 
             }
-
-            // add images if user has uploaded
-
-
+            
             await semaphoreSlim.WaitAsync();
-
-            _cancellationTokenSource = new CancellationTokenSource(2*60*1000);
-
 
             if ( BotMode)
             {
@@ -274,12 +277,15 @@ namespace BlazorGPT.Pages
 
             try
             {
-                var strs = await LocalStorageService.GetItemAsync<List<string>>("bgpt_interceptors");
+                var hasKey = await LocalStorageService.ContainKeyAsync("bgpt_interceptors");
+                var strs = hasKey ? await LocalStorageService.GetItemAsync<List<string>>("bgpt_interceptors") : [];
 
                 Conversation = await InterceptorHandler.Send(_kernel,
-                    Conversation, strs
-                    ,
-                    _cancellationTokenSource.Token);
+                    Conversation, 
+                    enabledInterceptors:null,
+                    enabledInterceptorNames: strs,
+                    OnStreamCompletion,
+                    cancellationToken: _cancellationTokenSource.Token);
 
 
                 await Send();
@@ -301,13 +307,14 @@ namespace BlazorGPT.Pages
                         }
                 }
             }
-            catch (InvalidOperationException ioe)
+            catch (InvalidOperationException )
             {
                 // todo: handle this
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 // todo: handle this
+                throw;
 
             }
             finally
@@ -334,13 +341,15 @@ namespace BlazorGPT.Pages
             {
                 if (!Conversation.StopRequested)
                 {
+                    _modelConfiguration ??= await _modelConfigurationService.GetConfig();
+                    
                     Conversation.AddMessage("assistant", "");
 
                     StateHasChanged();
 
                     var chatRequestSettings = new ChatRequestSettings();
-                    chatRequestSettings.ExtensionData["MaxTokens"] = _modelConfiguration!.MaxTokens;
-                    chatRequestSettings.ExtensionData["Temperature"] = _modelConfiguration!.Temperature;
+                    chatRequestSettings.ExtensionData["max_tokens"] = _modelConfiguration!.MaxTokens;
+                    chatRequestSettings.ExtensionData["temperature"] = _modelConfiguration!.Temperature;
 
                     Conversation = await
                         KernelService.ChatCompletionAsStreamAsync(_kernel, Conversation, chatRequestSettings, OnStreamCompletion, cancellationToken: _cancellationTokenSource.Token);
@@ -408,7 +417,7 @@ namespace BlazorGPT.Pages
 
                 Conversation =
                     await InterceptorHandler.Receive(_kernel, Conversation,
-                        await LocalStorageService.GetItemAsync<List<string>>("bgtpc_interceptors"));
+                       enabledInterceptorNames: await LocalStorageService.GetItemAsync<List<string>>("bgpt_interceptors"));
 
                 if (!BotMode  && wasSummarized)
                 {
@@ -484,7 +493,7 @@ namespace BlazorGPT.Pages
 
         private void GoToNew()
         {
-            NavigationManager.NavigateTo("/conversation", false);
+            NavigationManager.NavigateTo("/conversation", true);
         }
 
 
@@ -498,7 +507,7 @@ namespace BlazorGPT.Pages
                 InterceptorHandler.OnUpdate -= UpdateAndRedraw;
         }
 
-        async void WindowResized(object _, BrowserWindowSize window)
+         void WindowResized(object _, BrowserWindowSize window)
         {
             browser = window;
             StateHasChanged();
@@ -512,6 +521,9 @@ namespace BlazorGPT.Pages
         {
             IsBusy = true;
             Conversation.Messages.Clear();
+
+            _modelConfiguration = await _modelConfigurationService.GetConfig();
+            _kernel = await KernelService.CreateKernelAsync(_modelConfiguration.Provider, _modelConfiguration.Model);
 
             loadedScript = await ScriptRepository.GetScript(guid);
 
@@ -607,16 +619,11 @@ namespace BlazorGPT.Pages
         private QuickProfileSelector? _profileSelectorStart;
 
         private QuickProfileSelector? _profileSelectorEnd;
-        private bool useState;
 
         [Inject]
         ILocalStorageService LocalStorageService { get; set; } = null!;
         
-        //IEnumerable<string> enabledInterceptors = Array.Empty<string>();
-
         private int selectedTabIndex;
-
- 
 
         private async Task HiveStateClicked()
         {

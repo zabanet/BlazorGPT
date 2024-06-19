@@ -5,21 +5,15 @@ namespace BlazorGPT.Pipeline.Interceptors;
 
 public class StructurizrDslInterceptor : InterceptorBase, IInterceptor, IStateWritingInterceptor
 {
-
+ 
     private readonly ConversationsRepository _conversationsRepository;
-    private readonly IDbContextFactory<BlazorGptDBContext> _context;
 
-    public StructurizrDslInterceptor(IDbContextFactory<BlazorGptDBContext> context, ConversationsRepository conversationsRepository) : base(context, conversationsRepository)
+    public StructurizrDslInterceptor(IServiceProvider serviceProvider) : base(serviceProvider)
     {
-        _conversationsRepository = conversationsRepository;
-        _context = context;
     }
-    
 
     public async Task<Conversation> Send(Kernel kernel, Conversation conversation, CancellationToken cancellationToken = default)
     {
-
-
         if (conversation.Messages.Count() == 2)
         {
             await AppendInstruction(conversation);
@@ -28,7 +22,7 @@ public class StructurizrDslInterceptor : InterceptorBase, IInterceptor, IStateWr
         return conversation;
     }
 
-    private async Task<Conversation> AppendInstruction(Conversation conversation)
+    private Task<Conversation> AppendInstruction(Conversation conversation)
     {
         string state = @"
 
@@ -80,14 +74,11 @@ public class StructurizrDslInterceptor : InterceptorBase, IInterceptor, IStateWr
             IsPublished = true,
             Name = "msgstate",
         };
-
-        return conversation;
+        return Task.FromResult(conversation);
     }   
 
     private string path = @"C:\source\BlazorGPT\BlazorGPT\wwwroot\state\";
 
-
-    public bool Internal { get; } = false;
 
     public async Task<Conversation> Receive(Kernel kernel, Conversation conversation, CancellationToken cancellationToken = default)
     {
@@ -106,7 +97,7 @@ public class StructurizrDslInterceptor : InterceptorBase, IInterceptor, IStateWr
     }
 
 
-    public string Name { get; } = "Structurizr Hive DSL";
+    public override string Name { get; } = "Structurizr Hive DSL";
 
     public static string DecodeStringFromCSharp(string input)
     {

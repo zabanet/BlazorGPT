@@ -10,20 +10,22 @@
             {
                 <!-- system prompt -->
                 <ConversationMessageDisplay
+                    @ref="SystemMessageDisplay"
+                    InitialSystemPrompt="@InitialSystemPrompt"
                     Message="Conversation.Messages.FirstOrDefault()"
                     MessagesCount="Conversation.Messages.Count()" 
                     ShowEditButton="Conversation.IsStarted()"
                 />
+                
             }
 
                 
-            int msgCount = 1;
             @foreach (var message in Conversation.Messages.Skip(1))
             {
-                <ConversationMessageDisplay
+                <ConversationMessageDisplay 
                     ShowBranches="@ShowBranches"
                     ShowEditButton="!BotMode && Conversation.IsStarted()"
-                    ShowRestartButton="!BotMode && RestartConversation.HasDelegate && Conversation.IsStarted() && message.IsAssistantTurn()"
+                    ShowRestartButton="!BotMode && RestartConversation.HasDelegate && Conversation.IsStarted() && !message.IsAssistantTurn()"
                     ShowCopyButton="!BotMode && CopyConversation.HasDelegate && Conversation.Id != null"
                     OnRestartClicked="RestartConversation"
                     OnCopyClicked="CopyConversation"
@@ -38,9 +40,6 @@
 
                         <SKPlan PlanAsString="@Conversation.SKPlan"></SKPlan>
                     }
-               
-
-                msgCount++;
             }
         }
 
@@ -60,6 +59,9 @@
     [Parameter]
     public string? Style { get; set; }
 
+    [Parameter]
+    public string? InitialSystemPrompt { get; set; }
+
 
     [Parameter]
     public EventCallback<ConversationMessage> RestartConversation { get; set; }
@@ -77,4 +79,6 @@
             if (Interop != null) await Interop.SetupCopyButtons();
         }
     }
+
+    private ConversationMessageDisplay? SystemMessageDisplay;
 }

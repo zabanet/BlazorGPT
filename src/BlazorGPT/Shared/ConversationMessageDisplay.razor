@@ -40,22 +40,13 @@
     <div class="col-11 col-md-11 ps-2 pt-0 p-1 pb-0 mt-2 mb-0" id="@Message.Id">
         @if (Message.Role == ConversationRole.System)
         {
+            <SystemPromptSelect InitialSystemPrompt="@InitialSystemPrompt" Disabled="!EditMode && MessagesCount > 1" />
 
-
-            <RadzenTextArea
-                @ref="SystemPrompt"
-                class=""
-                Style="font-size: 0.9rem; width: 95%;"
-                @bind-Value="@Message.Content"
-                Disabled="!EditMode && MessagesCount > 1"
-                Rows="@CalculatePromptHeight()"/>
             if (EditMode)
             {
                 <button class="btn btn-sm btn-primary" @onclick="@(args => SaveMessage())">Save</button>
                 <button class="btn btn-sm btn-secondary" @onclick="@(args => SaveMessage())">Cancel</button>
             }
-
-
         }
         else
         {
@@ -118,8 +109,11 @@
 
     bool EditMode { get; set; }
 
+    [Parameter] public string? InitialSystemPrompt { get; set; }
+ 
+
     [Parameter]
-    public ConversationMessage? Message { get; set; }
+    public required ConversationMessage Message { get; set; }
 
     [Parameter]
     public int MessagesCount { get; set; }
@@ -300,26 +294,25 @@
         EditMode = false;
     }
 
-    private async Task CancelEdit()
+    private Task CancelEdit()
     {
         EditMode = false;
         Message!.Content = _messageToEdit!;
         StateHasChanged();
         _messageToEdit = null;
+        return Task.CompletedTask;
     }
 
 
-    private async Task EditClicked()
+    private Task EditClicked()
     {
-
-        _messageToEdit = Message!.Content;
-
+        _messageToEdit = Message.Content;
         EditMode = true;
+        return Task.CompletedTask;
     }
 
 
     [Parameter]
     public bool ShowEditButton { get; set; }
-
 
 }

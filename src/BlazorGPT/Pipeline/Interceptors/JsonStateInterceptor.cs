@@ -5,15 +5,12 @@ namespace BlazorGPT.Pipeline.Interceptors;
 
 public class JsonStateInterceptor : InterceptorBase, IInterceptor, IStateWritingInterceptor
 {
-
-    public JsonStateInterceptor(IDbContextFactory<BlazorGptDBContext> context, ConversationsRepository conversationsRepository) : base(context, conversationsRepository)
+    public JsonStateInterceptor(IServiceProvider serviceProvider) : base(serviceProvider)
     {
-        Name = "Json Hive State";
     }
 
-    public bool Internal => false;
 
-    public string Name { get; }  
+    public override string Name { get; } = "Json Hive State";
 
 
     public async Task<Conversation> Send(Kernel kernel, Conversation conversation, CancellationToken cancellationToken = default)
@@ -27,7 +24,7 @@ public class JsonStateInterceptor : InterceptorBase, IInterceptor, IStateWriting
         return conversation;
     }
 
-    private async Task<Conversation> AppendInstruction(Conversation conversation)
+    private Task<Conversation> AppendInstruction(Conversation conversation)
     {
 
         string state = "{\"id\":\"0\"}";
@@ -50,7 +47,7 @@ public class JsonStateInterceptor : InterceptorBase, IInterceptor, IStateWriting
             Name = "msgstate",
         };
 
-        return conversation;
+        return Task.FromResult(conversation);
     }
 
     private string path = @"C:\source\BlazorGPT\BlazorGPT\wwwroot\state\";

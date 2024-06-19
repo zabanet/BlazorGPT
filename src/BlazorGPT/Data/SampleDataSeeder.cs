@@ -1,5 +1,4 @@
-﻿using BlazorGPT.Data.Model;
-using BlazorGPT.Pipeline;
+﻿using BlazorGPT.Pipeline;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -42,7 +41,7 @@ namespace BlazorGPT.Data
             _scriptRepository = scriptRepository;
         }
 
-        public async Task SeedQPDataForUser(string userId)
+        public async Task SeedQPDataForUser(string? userId)
         {
             var ctx = await _dbContextFactory.CreateDbContextAsync();
 
@@ -136,7 +135,7 @@ Main goal is to make a basic model of a system, a few applications in that syste
             await ctx.SaveChangesAsync();
         }
 
-        public async Task SeedScriptsDataForUser(string userId)
+        public async Task SeedScriptsDataForUser(string? userId)
         {
             await using var ctx = await _dbContextFactory.CreateDbContextAsync();
 

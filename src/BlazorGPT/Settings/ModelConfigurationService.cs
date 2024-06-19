@@ -1,6 +1,7 @@
 ﻿using Blazored.LocalStorage;
 using BlazorGPT.Pipeline;
 using Microsoft.Extensions.Options;
+using Microsoft.SemanticKernel.Memory;
 
 namespace BlazorGPT.Settings;
 
@@ -25,7 +26,10 @@ public class ModelConfigurationService
             Provider = _pipelineOptions.Providers.GetChatModelsProvider(),
             Model = _pipelineOptions.Providers.GetChatModel(),
             MaxTokens = _pipelineOptions.MaxTokens,
-            Temperature = 0.0f
+            MaxPlannerTokens = _pipelineOptions.MaxPlannerTokens,
+            Temperature = 0.0f,
+            EmbeddingsModel = _pipelineOptions.Providers.GetEmbeddingsModel(),
+            EmbeddingsProvider = _pipelineOptions.Providers.GetEmbeddingsModelProvider()
         };
     }
 
@@ -34,7 +38,17 @@ public class ModelConfigurationService
         if (_userConfig != null) 
             return _userConfig;
 
-        var model = await _localStorageService!.GetItemAsync<ModelConfiguration?>(StorageKey);
+        ModelConfiguration? model = null;
+        try
+        {
+            model = await _localStorageService!.GetItemAsync<ModelConfiguration?>(StorageKey);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
+        
         if (model == null)
         {
             model = GetDefaultConfig();
